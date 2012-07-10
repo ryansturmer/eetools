@@ -29,6 +29,8 @@ eetools.pin_planner
 eetools.pin_planner is a gem, but is kind of a mess.  It lets you load a microcontroller pin map (in a currently undocumented awful format) and create a pin plan, detailing how each pin will be used.  The module can be used interactively, so pins can be claimed and unclaimed in real-time, easing the hassle of planning the pin utilization in a complex microcontroller design.  The module also provides convenient queries, so that pin constraints can be examined, and resolved
 more easily.
 
+Without having to clean it up or explain myself, check out the source, as well as the `examples/pin_planner.py`
+
 
 
 
