@@ -1,6 +1,5 @@
 import eetools.pin_planner as planner
 
-stm = planner.load("data/STM32F1xxC.csv", "LQFP64")
 
 # GPIOs
 def claim_gpios(pin_map, *funcs):
@@ -25,7 +24,7 @@ def claim(pin_map, function, purpose):
     except:
         print "!!!!!!!!Couldn't claim %s for %s" % (function, purpose)
 
-stm = PinMap.load("STM32F1xxC.csv", "LQFP64")
+stm = planner.load("data/STM32F1xxC.csv", "LQFP64")
 
 # Power Pins
 print stm.claim_like('vdd')

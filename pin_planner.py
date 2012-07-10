@@ -1,4 +1,4 @@
-import mycsv
+import tables
 
 class PinMap(object):
     def __init__(self, data):
@@ -147,12 +147,8 @@ class PinMap(object):
                     res += seq.split(sep)
             return [x for x in res if x.strip()]
 
-        table = None
+        table = tables.load(filename)
         pin_map = {}
-        with mycsv.CSVFile(filename) as fp:
-            table = fp.readlines()
-        if not table:
-            raise Exception("Couldn't load pin map table")
         header = table[0]
         func_cols = []
         remap_cols = []
