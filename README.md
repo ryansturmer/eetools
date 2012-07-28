@@ -31,6 +31,17 @@ more easily.
 
 Without having to clean it up or explain myself, check out the source, as well as the `examples/pin_planner.py`
 
+eetools.eia
+-----------
+The eetools.eia package keeps some static lists of standard EIA component values, as well as provides some convenient functions for searching and accessing them.  Examples!
 
+```python
+from eetools.eia import one_percent_resistors as res
 
+# I need a 221 ohm resistor
+print res.nearest(221.0)
+
+# If I'm desigining a circuit, and I want to err on one side or the other
+print res.nearest_above(221.0)
+print res.nearest_below(221.0)
 

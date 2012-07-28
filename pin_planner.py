@@ -19,7 +19,6 @@ class PinMap(object):
         '''
         self.__claimed_functions = set()
         self.__claimed_pins = set()
-        self.__function_map = {}
 
     def has(self, function):
         '''
@@ -182,6 +181,12 @@ class PinMap(object):
         p.name = filename
         return p
 
+    def pretty(self):
+        retval = ''
+        for key in sorted(self.data.keys()):
+            functions = self.data[key]
+            retval += '%3d : %s\n' % (key, ' | '.join([', '.join(f) for f in functions]))
+        return retval
     def __str__(self):
         return "<PinMap '%s': %d pins %d claimed>" % (self.name,len(self.data), len(self.claimed_pins))
     def __repr__(self):
