@@ -1,5 +1,15 @@
 import tables
 
+def listify(x):
+    if isinstance(x, str) or isinstance(x, unicode):
+        return [x]
+    else:
+        try:
+            iter(x)
+            return list(x)
+        except:
+            return [x]
+
 class PinMap(object):
     def __init__(self, data):
         self.data = data
@@ -19,6 +29,7 @@ class PinMap(object):
         '''
         self.__claimed_functions = set()
         self.__claimed_pins = set()
+        self.__purposes = {}
 
     def has(self, function):
         '''
@@ -72,13 +83,13 @@ class PinMap(object):
                 retval.append(f)
         return retval
 
-    def claim_like(self, func):
+    def claim_like(self, func, purpose=None):
         '''
         Works like claim, but with claims all functions that contain the provided string
         For exampls: 'spi1' claims spi1_miso, spi1_mosi, spi1_sck, etc.
         '''
         funcs = self.functions_like(func)
-        self.claim(*funcs)
+        self.claim(funcs, purpose=purpose)
         return funcs
 
     @property
@@ -89,19 +100,28 @@ class PinMap(object):
     def pins(self):
         return sorted(self.data.keys())
 
-    def claim(self, *functions):
+    def claim(self, functions, purpose=None):
+        '''
+        Claim all the functions provided.  Raises an exception if function does not exist or is unclaimable
+        '''
+        functions = listify(functions)
         for function in functions:
             if self.has(function):
                 for pin in self.pins_for(function):
                     if pin not in self.claimed_pins:
                         self.__claimed_functions.add(function)
                         self.__claimed_pins.add(pin)
+                        if purpose:
+                            self.__purposes[pin] = purpose
                 if function not in self.__claimed_functions:
                     raise ValueError("Can't claim function %s: You've already claimed these pins" % function)
             else:
                 raise ValueError("Can't claim function %s: Function does not exist." % function)
 
     def available_like(self, func):
+        '''
+        Returns all the functions available that contain the string provided
+        '''
         return [x for x in self.available_functions if func.lower() in x]
 
     @property
@@ -134,8 +154,34 @@ class PinMap(object):
     def claimed_functions(self):
         return sorted(self.__claimed_functions)
 
+    def pretty(self):
+        retval = ['Pin Map: %s/%s' % (self.name, self.package)]
+        retval.append('-'*len(retval[-1]))
+        retval.append('')
+        retval.append('Claimed Pins')
+        retval.append('-'*len(retval[-1]))
+        if not self.claimed_pins:
+            retval.append('         <None>')
+        for pin in self.claimed_pins:
+            purpose = self.__purposes.get(pin, None)
+            retval.append('%8s %s %s' % (pin, ' | '.join(self.functions_of(pin)), (' : %s' % purpose) if purpose else ''))
+
+        retval.append('')
+        retval.append('Unclaimed Pins')
+        retval.append('-'*len(retval[-1]))
+        if not self.unclaimed_pins:
+            retval.append('         <None>')
+        for pin in self.unclaimed_pins:
+            retval.append('%8s %s' % (pin, ' | '.join(self.functions_of(pin))))
+
+        return '\n'.join(retval)
+
     @staticmethod
     def load(filename, package):
+        '''
+        Load a pin map from a csv file.
+        See the documentation for load() at the module level for more info.
+        '''
         def parse_cell(s):
             s = s.lower()
             seps='/ '
@@ -179,19 +225,51 @@ class PinMap(object):
             pin_map[pin] = (funcs, remap_funcs)
         p = PinMap(pin_map)
         p.name = filename
+        p.package = package
         return p
-
+    '''
     def pretty(self):
         retval = ''
         for key in sorted(self.data.keys()):
             functions = self.data[key]
             retval += '%3d : %s\n' % (key, ' | '.join([', '.join(f) for f in functions]))
         return retval
+    '''
     def __str__(self):
         return "<PinMap '%s': %d pins %d claimed>" % (self.name,len(self.data), len(self.claimed_pins))
     def __repr__(self):
         return str(self)
 
 def load(filename, package):
+    '''
+    Loads a pin map file and returns a PinMap object.
+
+    A pinmap file is a csv file that describes the pinout of a microcontroller:
+
+     * The file must contain a header row that titles each column.
+     * A function column contains the text 'func' in the header cell and describes functions for the pins in each row.
+     * A remap column contains the text 'remap' in the header cell and describes alternate functions, available through pin re-mapping.
+     * A package column is any other column in the file with a nonempty header cell.  A file may describe any number of packages
+       for the same microcontroller, and the package returned by the load function must be specified with the `package` argument.
+     * For pins with multiple functions, function descriptors can be separated by the slash character '/'
+
+    Below is an example of an 8-pin microcontroller with 2 packages: soic8, and bga9
+     * Note that some pins do not have remap functionality (VCC, GND)
+     * Note that even without remap, some pins have multiple functions (GP0/AIN1, et al)
+     * Note that the bga package has an extra pin (GP3 and T1).  The soic package pin for that row is blank, and this is fine.
+
+    soic8,bga9,func,remap
+    1,a1,VCC,
+    2,a2,OSC,T0
+    3,a3,GP0/AIN1,PWM1
+    4,b1,GP1/AIN2,PWM2
+    5,b2,GP2/AIN3,PWM3
+    6,b3,RESET,SDA
+    7,c1,GP3/INT,SCL
+    8,c2,GND,
+     ,c3,GP3,T1
+    '''
+
     return PinMap.load(filename, package)
+
 
