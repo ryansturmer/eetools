@@ -1,4 +1,4 @@
-import tables
+import tableview as tables
 
 def listify(x):
     if isinstance(x, str) or isinstance(x, unicode):
