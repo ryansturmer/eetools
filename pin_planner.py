@@ -1,4 +1,4 @@
-import tableview as tables
+import tableview 
 
 def listify(x):
     if isinstance(x, str) or isinstance(x, unicode):
@@ -11,6 +11,14 @@ def listify(x):
             return [x]
 
 class PinMap(object):
+    '''
+    The PinMap represents a mapping of IC pins to a set of functions.  It is
+    meant to be used in situations where IC functions must be mapped to pins
+    that potentially have multiple functions.  A PinMap is loaded from a text/csv
+    file (See the load() function for details) and the pins are 'claimed' by name.
+    The PinMap object maintains a registry of pins, keeping track of which pins
+    have been claimed, and for what purposes.
+    '''
     def __init__(self, data):
         self.data = data
         self.peripherals = set()
@@ -154,28 +162,23 @@ class PinMap(object):
     def claimed_functions(self):
         return sorted(self.__claimed_functions)
 
-    def pretty(self):
-        retval = ['Pin Map: %s/%s' % (self.name, self.package)]
-        retval.append('-'*len(retval[-1]))
-        retval.append('')
-        retval.append('Claimed Pins')
-        retval.append('-'*len(retval[-1]))
-        if not self.claimed_pins:
-            retval.append('         <None>')
+    def _table(self):
+        d = []
+        d.append(['Device:',self.name])
+        d.append(['Pins:', len(self.pins)])
+        d.append(['Pin','Claimed','Purpose','Functions'])
+        
         for pin in self.claimed_pins:
             purpose = self.__purposes.get(pin, None)
-            retval.append('%8s %s %s' % (pin, ' | '.join(self.functions_of(pin)), (' : %s' % purpose) if purpose else ''))
-
-        retval.append('')
-        retval.append('Unclaimed Pins')
-        retval.append('-'*len(retval[-1]))
-        if not self.unclaimed_pins:
-            retval.append('         <None>')
+            d.append([pin, 'Y', purpose] + list(self.functions_of(pin)))
         for pin in self.unclaimed_pins:
-            retval.append('%8s %s' % (pin, ' | '.join(self.functions_of(pin))))
+            d.append([pin, 'N', None] + list(self.functions_of(pin)))
+        
+        return tableview.TableView(d)
 
-        return '\n'.join(retval)
-
+    def pretty(self):
+        return self._table().pretty()
+    
     @staticmethod
     def load(filename, package):
         '''
@@ -192,7 +195,7 @@ class PinMap(object):
                     res += seq.split(sep)
             return [x for x in res if x.strip()]
 
-        table = tables.load(filename)
+        table = tableview.load(filename)
         pin_map = {}
         header = table[0]
         func_cols = []
@@ -244,9 +247,9 @@ def load(filename, package):
     '''
     Loads a pin map file and returns a PinMap object.
 
-    A pinmap file is a csv file that describes the pinout of a microcontroller:
+    A pinmap file is a csv file that describes the pinout of a microcontroller or other IC:
 
-     * The file must contain a header row that titles each column.
+     * The first row of the file must be a header row that titles each column.
      * A function column contains the text 'func' in the header cell and describes functions for the pins in each row.
      * A remap column contains the text 'remap' in the header cell and describes alternate functions, available through pin re-mapping.
      * A package column is any other column in the file with a nonempty header cell.  A file may describe any number of packages
@@ -256,7 +259,7 @@ def load(filename, package):
     Below is an example of an 8-pin microcontroller with 2 packages: soic8, and bga9
      * Note that some pins do not have remap functionality (VCC, GND)
      * Note that even without remap, some pins have multiple functions (GP0/AIN1, et al)
-     * Note that the bga package has an extra pin (GP3 and T1).  The soic package pin for that row is blank, and this is fine.
+     * Note that the bga package has an extra pin (GP3/T1).  The soic package pin for that row is blank, and this is fine.
 
     soic8,bga9,func,remap
     1,a1,VCC,
@@ -269,6 +272,5 @@ def load(filename, package):
     8,c2,GND,
      ,c3,GP3,T1
     '''
-
     return PinMap.load(filename, package)
 
